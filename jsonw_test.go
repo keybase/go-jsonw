@@ -195,7 +195,7 @@ func TestPath(t *testing.T) {
 		t.Errorf("Expected Tommy for cats.1.name, got: %v", v2)
 	}
 
-	if v,ok := w.GetIntAtPath("dogs.1.age"); !ok {
+	if v,ok := w.AtPathGetInt("dogs.1.age"); !ok {
 		t.Errorf("Not ok; failed to find at int at dogs.1.age")
 	} else if v != 3 {
 		t.Errorf("Got wrong age at dogs.1.age (%d)", v)

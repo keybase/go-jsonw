@@ -456,7 +456,7 @@ func (w *Wrapper) AtPath(path string) (ret *Wrapper) {
 	return ret
 }
 
-func (w *Wrapper) GetIntAtPath(path string) (ret int, ok bool) {
+func (w *Wrapper) AtPathGetInt(path string) (ret int, ok bool) {
 	tmp := w.AtPath(path)
 	if tmp != nil {
 		var err error
