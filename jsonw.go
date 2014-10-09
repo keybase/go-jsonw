@@ -374,21 +374,21 @@ func (rd *Wrapper) AtKey(s string) *Wrapper {
 }
 
 func (rd *Wrapper) ToDictionary() (out *Wrapper, e error) {
-	tmp,_ := rd.asDictionary()
+	tmp, _ := rd.asDictionary()
 	if tmp.err != nil {
-		e = tmp.err;
+		e = tmp.err
 	} else {
-		out = rd;
+		out = rd
 	}
 	return
 }
 
 func (rd *Wrapper) ToArray() (out *Wrapper, e error) {
-	tmp,_ := rd.asArray ()
+	tmp, _ := rd.asArray()
 	if tmp.err != nil {
-		e = tmp.err;
+		e = tmp.err
 	} else {
-		out = rd;
+		out = rd
 	}
 	return
 }
@@ -425,17 +425,24 @@ func (i *Wrapper) asDictionary() (ret *Wrapper, d map[string]interface{}) {
 	return
 }
 
+func tryInt(bit string) (ret int, isInt bool) {
+	ret = 0
+	isInt = false
+	if len(bit) > 0 && (bit[0] >= '0' && bit[0] <= '9') {
+		// this is probably an int, use AtIndex instead
+		var e error
+		ret, e = strconv.Atoi(bit)
+		isInt = (e == nil)
+	}
+	return
+}
+
 func (w *Wrapper) AtPath(path string) (ret *Wrapper) {
 	bits := strings.Split(path, ".")
 	ret = w
 	for _, bit := range bits {
-		if len(bit) > 0 && (bit[0] >= '0' && bit[0] <= '9') {
-			// this is probably an int, use AtIndex instead
-			if val, e := strconv.Atoi(bit); e == nil {
-				ret = ret.AtIndex(val)
-			} else {
-				ret = ret.AtKey(bit)
-			}
+		if val, isInt := tryInt(bit); isInt {
+			ret = ret.AtIndex(val)
 		} else if len(bit) > 0 {
 			ret = ret.AtKey(bit)
 		} else {
@@ -447,4 +454,54 @@ func (w *Wrapper) AtPath(path string) (ret *Wrapper) {
 		}
 	}
 	return ret
+}
+
+func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
+	bits := strings.Split(path, ".")
+	currW := w
+	var err error
+	for i, bit := range bits[:len(bits)-1] {
+		// at each key, create an empty dictionary if one doesn't exist yet
+		var nextVal, d *Wrapper
+		// if the next bit is an integer, and it's not the last key
+		// in the path, then the next value should be an array
+		if nextInt, nextIsInt := tryInt(bits[i+1]); nextIsInt &&
+			i < len(bits)-1 {
+			// Default size of the array is just big enough to fit the next
+			// value.
+			nextVal = NewArray(nextInt + 1)
+		} else {
+			nextVal = NewDictionary()
+		}
+
+		// If we're looking at an index, treat like an array
+		if val, is_int := tryInt(bit); is_int {
+			d = currW.AtIndex(val)
+		} else {
+			d = currW.AtKey(bit)
+		}
+
+		if d.IsNil() {
+			d = nextVal
+			if val, is_int := tryInt(bit); is_int {
+				// TODO: resize array if it's not big enough?
+				err = currW.SetIndex(val, d)
+			} else {
+				err = currW.SetKey(bit, d)
+			}
+			if err != nil {
+				return err
+			}
+		}
+
+		currW = d
+	}
+
+	lastBit := bits[len(bits)-1]
+	if val, is_int := tryInt(lastBit); is_int {
+		err = currW.SetIndex(val, value)
+	} else {
+		err = currW.SetKey(lastBit, value)
+	}
+	return err
 }

@@ -2,8 +2,8 @@ package jsonw
 
 import (
 	"bytes"
-	"testing"
 	"encoding/json"
+	"testing"
 )
 
 func TestInt(t *testing.T) {
@@ -25,33 +25,32 @@ func TestBigInt(t *testing.T) {
 	}
 }
 
-func TestFloat (t *testing.T) {
-	e := 2.71828183;
+func TestFloat(t *testing.T) {
+	e := 2.71828183
 	f := NewFloat64(e)
-	e2, err := f.GetFloat(); 
+	e2, err := f.GetFloat()
 
 	if err != nil {
-		t.Errorf("Getting a float failed: %s\n", err);
-	} else if (e - e2)*(e - e2) > .1 {
-		t.Errorf("Weird mismatch: %f v %f\n", e, e2);
+		t.Errorf("Getting a float failed: %s\n", err)
+	} else if (e-e2)*(e-e2) > .1 {
+		t.Errorf("Weird mismatch: %f v %f\n", e, e2)
 	}
 
-	jsonStream := []byte("{ \"e\" : 2.71828183 }");
+	jsonStream := []byte("{ \"e\" : 2.71828183 }")
 	var res interface{}
-	err = json.Unmarshal(jsonStream, &res);
+	err = json.Unmarshal(jsonStream, &res)
 	if err != nil {
-		t.Errorf("cannot unmarshall: %s\n", err);
+		t.Errorf("cannot unmarshall: %s\n", err)
 	}
 	w := NewWrapper(res)
-	
+
 	e2, err = w.AtKey("e").GetFloat()
 	if err != nil {
-		t.Errorf("Pass 2: Getting a float failed: %s\n", err);
-	} else if (e - e2)*(e - e2) > .1 {
-		t.Errorf("Pass 2: Weird mismatch: %f v %f\n", e, e2);
+		t.Errorf("Pass 2: Getting a float failed: %s\n", err)
+	} else if (e-e2)*(e-e2) > .1 {
+		t.Errorf("Pass 2: Weird mismatch: %f v %f\n", e, e2)
 	}
 
-	
 }
 
 func TestBytes(t *testing.T) {
@@ -70,12 +69,12 @@ func TestVoid(t *testing.T) {
 	w := NewDictionary()
 
 	/*
-		 * { "uno" : "un",
-		 *   "dos" : "deux",
-		 *   "tres" : "trois",
-		 *   "quatro" : 4,
-		 *   "others" : [ 100, 101, 102 ]
-	         *  }
+			 * { "uno" : "un",
+			 *   "dos" : "deux",
+			 *   "tres" : "trois",
+			 *   "quatro" : 4,
+			 *   "others" : [ 100, 101, 102 ]
+		         *  }
 	*/
 	w.SetKey("uno", NewString("un"))
 	w.SetKey("dos", NewString("deux"))
@@ -166,12 +165,13 @@ func TestPath(t *testing.T) {
 	w.AtKey("dogs").SetIndex(1, NewDictionary())
 
 	w.AtKey("dogs").AtIndex(0).SetKey("age", NewInt(7))
-	w.AtKey("dogs").AtIndex(0).SetKey("name", NewDictionary())
-	w.AtKey("dogs").AtIndex(0).AtKey("name").SetKey("first", NewString("Fido"))
+	w.SetValueAtPath("dogs.0.name.first", NewString("Fido"))
 
 	w.AtKey("dogs").AtIndex(1).SetKey("age", NewInt(3))
 	w.AtKey("dogs").AtIndex(1).SetKey("name", NewDictionary())
 	w.AtKey("dogs").AtIndex(1).AtKey("name").SetKey("first", NewString("Peanut"))
+
+	w.SetValueAtPath("cats.1.name", NewString("Tommy"))
 
 	if v, e := w.AtPath("dogs.0.age").GetInt(); e != nil {
 		t.Errorf("Expected 7 for dogs.0.age, got Error: %v", e)
@@ -183,5 +183,15 @@ func TestPath(t *testing.T) {
 		t.Errorf("Expected Peanut for dogs.1.name.first, got Error: %v", e)
 	} else if v != "Peanut" {
 		t.Errorf("Expected Peanut for dogs.1.name.first, got: %v", v)
+	}
+
+	if v, e := w.AtPath("cats").ToArray(); e != nil {
+		t.Errorf("Expected Tommy for cats.1.name, got Error: %v", e)
+	} else if v2, e2 := v.AtIndex(1).ToDictionary(); e2 != nil {
+		t.Errorf("Expected Tommy for cats.1.name, got Error: %v", e2)
+	} else if v3, e3 := v2.AtKey("name").GetString(); e3 != nil {
+		t.Errorf("Expected Tommy for cats.1.name, got Error: %v", e3)
+	} else if v3 != "Tommy" {
+		t.Errorf("Expected Tommy for cats.1.name, got: %v", v2)
 	}
 }
