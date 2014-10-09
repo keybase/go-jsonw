@@ -456,6 +456,18 @@ func (w *Wrapper) AtPath(path string) (ret *Wrapper) {
 	return ret
 }
 
+func (w *Wrapper) GetIntAtPath(path string) (ret int, ok bool) {
+	tmp := w.AtPath(path)
+	if tmp != nil {
+		var err error
+		ret, err = tmp.GetInt()
+		ok = (err == nil)
+	} else {
+		ok = false
+	}
+	return
+}
+
 func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 	bits := strings.Split(path, ".")
 	currW := w
