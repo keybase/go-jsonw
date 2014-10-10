@@ -416,6 +416,14 @@ func (w *Wrapper) SetKey(s string, val *Wrapper) error {
 	return b.Error()
 }
 
+func (w *Wrapper) DeleteKey(s string) error {
+	b, d := w.asDictionary()
+	if d != nil {
+		delete(d, s)
+	}
+	return b.Error()
+}
+
 func (w *Wrapper) SetIndex(i int, val *Wrapper) error {
 	b, d := w.asArray()
 	if d != nil {
@@ -529,6 +537,37 @@ func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 		err = currW.SetIndex(val, value)
 	} else {
 		err = currW.SetKey(lastBit, value)
+	}
+	return err
+}
+
+func (w *Wrapper) DeleteValueAtPath(path string) error {
+	bits := strings.Split(path, ".")
+	currW := w
+	var err error
+	for _, bit := range bits[:len(bits)-1] {
+		//  if the any key on the path doesn't exist yet, we're done
+		// If we're looking at an index, treat like an array
+		var d *Wrapper
+		if val, is_int := tryInt(bit); is_int {
+			d = currW.AtIndex(val)
+		} else {
+			d = currW.AtKey(bit)
+		}
+
+		if d.IsNil() {
+			return nil
+		}
+
+		currW = d
+	}
+
+	lastBit := bits[len(bits)-1]
+	if val, is_int := tryInt(lastBit); is_int {
+		// can't do much for arrays besides just make it nil
+		err = currW.SetIndex(val, NewNil())
+	} else {
+		err = currW.DeleteKey(lastBit)
 	}
 	return err
 }

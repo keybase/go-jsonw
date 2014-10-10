@@ -200,4 +200,25 @@ func TestPath(t *testing.T) {
 	} else if v != 3 {
 		t.Errorf("Got wrong age at dogs.1.age (%d)", v)
 	}
+
+	// Now try deleting
+	w.DeleteValueAtPath("cats.1.name")
+	if v, e := w.AtPath("cats").ToArray(); e != nil {
+		t.Errorf("Expected cats for cats.1.name, got Error: %v", e)
+	} else if v2, e2 := v.AtIndex(1).ToDictionary(); e2 != nil {
+		t.Errorf("Expected 1 for cats.1.name, got Error: %v", e2)
+	} else if v3, e3 := v2.AtKey("name").GetString(); e3 == nil {
+		t.Errorf("Expected nothing after deletion of cats.1.name, got: %s", v3)
+	}
+
+	// now delete an array member
+	w.SetValueAtPath("cats.0.name", NewString("Linus"))
+	w.DeleteValueAtPath("cats.1")
+	if v, e := w.AtPath("cats").ToArray(); e != nil {
+		t.Errorf("Expected cats for cats.1, got Error: %v", e)
+	} else if v2 := v.AtIndex(1); !v2.IsNil() {
+		t.Errorf("Expected nil for cats.1, got: %v", v2)
+	} else if _, e3 := v.AtIndex(0).ToDictionary(); e3 != nil {
+		t.Errorf("Expected a value for cats.0, got Error: %v", e3)
+	}
 }
