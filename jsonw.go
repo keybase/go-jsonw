@@ -1,6 +1,7 @@
 package jsonw
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -15,6 +16,20 @@ type Wrapper struct {
 
 type Error struct {
 	msg string
+}
+
+func (w *Wrapper) Marshal() ([]byte, error) {
+	return json.Marshal(w.dat)
+}
+
+func Unmarshal(raw []byte) (*Wrapper, error) {
+	var iface interface{}
+	err := json.Unmarshal(raw, &iface)
+	var ret *Wrapper
+	if err != nil {
+		ret = NewWrapper(iface)
+	}
+	return ret, err
 }
 
 func (e Error) Error() string { return e.msg }
