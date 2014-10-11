@@ -141,6 +141,10 @@ func isFloat(v reflect.Value) bool {
 	return k == reflect.Float32 || k == reflect.Float64
 }
 
+func (i *Wrapper) sameType(w *Wrapper) bool {
+	return reflect.ValueOf(i.dat).Kind() == reflect.ValueOf(w.dat).Kind()
+}
+
 func (i *Wrapper) AccessPath() string {
 	return strings.Join(i.access, "")
 }
@@ -496,13 +500,14 @@ func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 	bits := strings.Split(path, ".")
 	currW := w
 	var err error
-	for i, bit := range bits[:len(bits)-1] {
+	for i, bit := range bits {
 		// at each key, create an empty dictionary if one doesn't exist yet
 		var nextVal, d *Wrapper
 		// if the next bit is an integer, and it's not the last key
 		// in the path, then the next value should be an array
-		if nextInt, nextIsInt := tryInt(bits[i+1]); nextIsInt &&
-			i < len(bits)-1 {
+		if i == len(bits)-1 {
+			nextVal = value
+		} else if nextInt, nextIsInt := tryInt(bits[i+1]); nextIsInt {
 			// Default size of the array is just big enough to fit the next
 			// value.
 			nextVal = NewArray(nextInt + 1)
@@ -517,8 +522,9 @@ func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 			d = currW.AtKey(bit)
 		}
 
-		// if we've hit a leaf key or nil, put in the new value
-		if d.Error() != nil || d.IsNil() {
+		// if we've hit nil or a wrong type of node, or the last bit,
+		// write in the correct value
+		if d.IsNil() || !d.sameType(nextVal) || i == len(bits)-1 {
 			d = nextVal
 			if val, is_int := tryInt(bit); is_int {
 				// TODO: resize array if it's not big enough?
@@ -534,12 +540,6 @@ func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 		currW = d
 	}
 
-	lastBit := bits[len(bits)-1]
-	if val, is_int := tryInt(lastBit); is_int {
-		err = currW.SetIndex(val, value)
-	} else {
-		err = currW.SetKey(lastBit, value)
-	}
 	return err
 }
 

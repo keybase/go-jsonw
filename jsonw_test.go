@@ -221,4 +221,28 @@ func TestPath(t *testing.T) {
 	} else if _, e3 := v.AtIndex(0).ToDictionary(); e3 != nil {
 		t.Errorf("Expected a value for cats.0, got Error: %v", e3)
 	}
+
+	// try overwriting a path with a longer path
+	err := w.SetValueAtPath("dogs.0.name.first.initial", NewString("F"))
+	if err != nil {
+		t.Errorf("Expected to set dogs.0.name.first.initial, "+
+			"got Error: %v", err)
+	} else if v, e := w.AtPath("dogs.0.name.first").ToDictionary(); e != nil {
+		t.Errorf("Expected dictionary for dogs.1.name.first, got Error: %v", e)
+	} else if v2, e2 := v.AtKey("initial").GetString(); e2 != nil {
+		t.Errorf("Expected F for dogs.0.name.first.initial, got Error: %v", e2)
+	} else if v2 != "F" {
+		t.Errorf("Expected F for dogs.0.name.first.initial, got: %v", v2)
+	}
+
+	// try overwriting a path with a shorter path
+	err = w.SetValueAtPath("dogs.0.name", NewString("Fido Barkley"))
+	if err != nil {
+		t.Errorf("Expected to set dogs.0.name, got Error: %v", err)
+	} else if v, e := w.AtPath("dogs.0.name").GetString(); e != nil {
+		t.Errorf("Expected Fido Barkley for dogs.0.name, got Error: %v", e)
+	} else if v != "Fido Barkley" {
+		t.Errorf("Expected Fido Barkley for dogs.0.name.first.initial, got: %v",
+			v)
+	}
 }
