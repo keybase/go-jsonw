@@ -376,15 +376,16 @@ func (rd *Wrapper) IsNil() bool {
 func (rd *Wrapper) AtKey(s string) *Wrapper {
 	ret, d := rd.asDictionary()
 
+	ret.access = append(ret.access, fmt.Sprintf(".%s", s))
 	if d != nil {
 		val, found := d[s]
 		if found {
 			ret.dat = val
 		} else {
 			ret.dat = nil
+			ret.err = ret.NewError("no such key: %s", s)
 		}
 	}
-	ret.access = append(ret.access, fmt.Sprintf(".%s", s))
 	return ret
 }
 
@@ -516,7 +517,8 @@ func (w *Wrapper) SetValueAtPath(path string, value *Wrapper) error {
 			d = currW.AtKey(bit)
 		}
 
-		if d.IsNil() {
+		// if we've hit a leaf key or nil, put in the new value
+		if d.Error() != nil || d.IsNil() {
 			d = nextVal
 			if val, is_int := tryInt(bit); is_int {
 				// TODO: resize array if it's not big enough?
