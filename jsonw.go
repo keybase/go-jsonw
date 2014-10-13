@@ -26,7 +26,7 @@ func Unmarshal(raw []byte) (*Wrapper, error) {
 	var iface interface{}
 	err := json.Unmarshal(raw, &iface)
 	var ret *Wrapper
-	if err != nil {
+	if err == nil {
 		ret = NewWrapper(iface)
 	}
 	return ret, err
