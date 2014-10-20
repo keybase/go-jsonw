@@ -23,12 +23,12 @@ func (w *Wrapper) Marshal() ([]byte, error) {
 }
 
 func (w *Wrapper) MarshalToDebug() string {
-	b, err := w.Marshal()
+	buf, err := w.Marshal()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf( "<bad JSON structure: %s>", err.Error());
 	} else {
-		return string(b)
-	}
+		return string(buf)
+	}	
 }
 
 func Unmarshal(raw []byte) (*Wrapper, error) {
