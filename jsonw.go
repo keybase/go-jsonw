@@ -22,6 +22,15 @@ func (w *Wrapper) Marshal() ([]byte, error) {
 	return json.Marshal(w.dat)
 }
 
+func (w *Wrapper) MarshalToDebug() string {
+	b, err := w.Marshal()
+	if err != nil {
+		return err.Error()
+	} else {
+		return string(b)
+	}
+}
+
 func Unmarshal(raw []byte) (*Wrapper, error) {
 	var iface interface{}
 	err := json.Unmarshal(raw, &iface)
