@@ -22,13 +22,22 @@ func (w *Wrapper) Marshal() ([]byte, error) {
 	return json.Marshal(w.dat)
 }
 
+func (w *Wrapper) MarshalPretty() string {
+	encoded, err := json.MarshalIndent(w.dat, "", "    ")
+	if err != nil {
+		return fmt.Sprintf("<bad JSON structure: %s>", err.Error())
+	} else {
+		return string(encoded)
+	}
+}
+
 func (w *Wrapper) MarshalToDebug() string {
 	buf, err := w.Marshal()
 	if err != nil {
 		return fmt.Sprintf( "<bad JSON structure: %s>", err.Error());
 	} else {
 		return string(buf)
-	}	
+	}
 }
 
 func Unmarshal(raw []byte) (*Wrapper, error) {
