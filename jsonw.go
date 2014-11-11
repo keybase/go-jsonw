@@ -329,6 +329,26 @@ func (rd *Wrapper) GetString() (ret string, err error) {
 	return
 }
 
+func (rd *Wrapper) GetBytes() (ret []byte, err error) {
+	if rd.err != nil {
+		err = rd.err
+	} else if b, ok := rd.dat.([]byte); ok {
+		ret = b
+	} else {
+		err = rd.wrongType("[]byte", reflect.ValueOf(rd.dat).Kind())
+	}
+	return
+}
+
+func (w *Wrapper) GetBytesVoid(bp *[]byte, errp *error) {
+	b, e := w.GetBytes()
+	if e == nil {
+		*bp = b
+	} else if e != nil && errp != nil && *errp == nil {
+		*errp = e
+	}
+}
+
 func (w *Wrapper) GetStringVoid(sp *string, errp *error) {
 	s, e := w.GetString()
 	if e == nil {
