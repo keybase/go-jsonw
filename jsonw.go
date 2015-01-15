@@ -1,12 +1,12 @@
 package jsonw
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
-	"bytes"
 )
 
 type Wrapper struct {
@@ -35,7 +35,7 @@ func (w *Wrapper) MarshalPretty() string {
 func (w *Wrapper) MarshalToDebug() string {
 	buf, err := w.Marshal()
 	if err != nil {
-		return fmt.Sprintf( "<bad JSON structure: %s>", err.Error());
+		return fmt.Sprintf("<bad JSON structure: %s>", err.Error())
 	} else {
 		return string(buf)
 	}
@@ -173,17 +173,16 @@ func (i *Wrapper) AccessPath() string {
 func (rd *Wrapper) GetFloat() (ret float64, err error) {
 	if rd.err != nil {
 		err = rd.err
+	} else if n, ok := rd.dat.(json.Number); ok {
+		ret, err = n.Float64()
+	} else if v := reflect.ValueOf(rd.dat); isFloat(v) {
+		ret = float64(v.Float())
+	} else if isInt(v) {
+		ret = float64(v.Int())
+	} else if isUint(v) {
+		ret = float64(v.Uint())
 	} else {
-		v := reflect.ValueOf(rd.dat)
-		if isFloat(v) {
-			ret = float64(v.Float())
-		} else if isInt(v) {
-			ret = float64(v.Int())
-		} else if isUint(v) {
-			ret = float64(v.Uint())
-		} else {
-			err = rd.wrongType("float-like", v.Kind())
-		}
+		err = rd.wrongType("float-like", v.Kind())
 	}
 	return
 }
@@ -200,19 +199,18 @@ func (w *Wrapper) GetFloatVoid(fp *float64, errp *error) {
 func (rd *Wrapper) GetInt64() (ret int64, err error) {
 	if rd.err != nil {
 		err = rd.err
+	} else if n, ok := rd.dat.(json.Number); ok {
+		ret, err = n.Int64()
+	} else if v := reflect.ValueOf(rd.dat); isInt(v) {
+		ret = v.Int()
+	} else if isFloat(v) {
+		ret = int64(v.Float())
+	} else if !isUint(v) {
+		err = rd.wrongType("int", v.Kind())
+	} else if v.Uint() <= (1<<63 - 1) {
+		ret = int64(v.Uint())
 	} else {
-		v := reflect.ValueOf(rd.dat)
-		if isInt(v) {
-			ret = v.Int()
-		} else if isFloat(v) {
-			ret = int64(v.Float())
-		} else if !isUint(v) {
-			err = rd.wrongType("int", v.Kind())
-		} else if v.Uint() <= (1<<63 - 1) {
-			ret = int64(v.Uint())
-		} else {
-			err = rd.NewError("Signed int64 overflow error")
-		}
+		err = rd.NewError("Signed int64 overflow error")
 	}
 	return
 }
@@ -255,31 +253,35 @@ func (w *Wrapper) GetUintVoid(ip *uint, errp *error) {
 }
 
 func (rd *Wrapper) GetUint64() (ret uint64, err error) {
+	underflow := false
 	if rd.err != nil {
 		err = rd.err
-	} else {
-		underflow := false
-		v := reflect.ValueOf(rd.dat)
-		if isUint(v) {
-			ret = v.Uint()
-		} else if isFloat(v) {
-			if v.Float() <= 0 {
-				underflow = true
-			} else {
-				ret = uint64(v.Float())
-			}
-		} else if !isInt(v) {
-			err = rd.wrongType("uint", v.Kind())
-		} else if v.Int() >= 0 {
-			ret = uint64(v.Int())
-		} else {
+	} else if n, ok := rd.dat.(json.Number); ok {
+		var tmp int64
+		if tmp, err = n.Int64(); err == nil && tmp < 0 {
 			underflow = true
+		} else if err == nil {
+			ret = uint64(tmp)
 		}
-
-		if underflow {
-			err = rd.NewError("Unsigned uint64 underflow error")
-
+	} else if v := reflect.ValueOf(rd.dat); isUint(v) {
+		ret = v.Uint()
+	} else if isFloat(v) {
+		if v.Float() < 0 {
+			underflow = true
+		} else {
+			ret = uint64(v.Float())
 		}
+	} else if !isInt(v) {
+		err = rd.wrongType("uint", v.Kind())
+	} else if v.Int() >= 0 {
+		ret = uint64(v.Int())
+	} else {
+		underflow = true
+	}
+
+	if underflow {
+		err = rd.NewError("Unsigned uint64 underflow error")
+
 	}
 	return
 }
