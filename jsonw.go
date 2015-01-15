@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"bytes"
 )
 
 type Wrapper struct {
@@ -42,7 +43,9 @@ func (w *Wrapper) MarshalToDebug() string {
 
 func Unmarshal(raw []byte) (*Wrapper, error) {
 	var iface interface{}
-	err := json.Unmarshal(raw, &iface)
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	err := dec.Decode(&iface)
 	var ret *Wrapper
 	if err == nil {
 		ret = NewWrapper(iface)
