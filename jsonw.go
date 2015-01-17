@@ -616,3 +616,12 @@ func (w *Wrapper) DeleteValueAtPath(path string) error {
 	}
 	return err
 }
+
+func (w *Wrapper) UnmarshalAgain(i interface{}) (err error) {
+	var tmp []byte
+	if tmp, err = w.Marshal(); err != nil {
+		return
+	}
+	err = json.Unmarshal(tmp, i)
+	return
+}
