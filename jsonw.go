@@ -625,3 +625,26 @@ func (w *Wrapper) UnmarshalAgain(i interface{}) (err error) {
 	err = json.Unmarshal(tmp, i)
 	return
 }
+
+func Canonicalize(in []byte) ([]byte, error) {
+	if v, err := Unmarshal(in); err != nil {
+		return nil, err
+	} else if ret, err := v.Marshal(); err != nil {
+		return nil, err
+	} else {
+		return ret, nil
+	}
+}
+
+func (w *Wrapper) AssertEqAtPath(path string, obj *Wrapper, errp *error) {
+	v := w.AtPath(path)
+	if b1, err := v.Marshal(); err != nil {
+		*errp = err
+	} else if b2, err := w.Marshal(); err != nil {
+		*errp = err
+	} else if !bytes.Equal(b1, b2) {
+		err = fmt.Errorf("Equality assertion failed at %s: %s != %s",
+			path, string(b1), string(b2))
+	}
+	return
+}
