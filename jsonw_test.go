@@ -65,7 +65,7 @@ func TestBytes(t *testing.T) {
 
 }
 
-func TestVoid(t *testing.T) {
+func makeTestObj() *Wrapper {
 	w := NewDictionary()
 
 	/*
@@ -84,6 +84,13 @@ func TestVoid(t *testing.T) {
 	w.AtKey("others").SetIndex(0, NewInt(100))
 	w.AtKey("others").SetIndex(1, NewInt(101))
 	w.AtKey("others").SetIndex(2, NewInt(102))
+
+	return w
+}
+
+func TestVoid(t *testing.T) {
+
+	w := makeTestObj()
 
 	var e, e2 error
 	var s string
@@ -244,5 +251,34 @@ func TestPath(t *testing.T) {
 	} else if v != "Fido Barkley" {
 		t.Errorf("Expected Fido Barkley for dogs.0.name.first.initial, got: %v",
 			v)
+	}
+}
+
+type MyStruct struct {
+	Name string `json:"name"`
+	Yob int `json:"yob"`
+}
+
+
+func TestObjectCopy(t *testing.T) {
+	s := MyStruct{ "Max", 1977 }
+	w := makeTestObj()
+
+	testMax := func() {
+		if v, e := w.AtPath("obj.name").GetString(); e != nil {
+			t.Errorf("Expected obj.name = Max: %v", e)
+		} else if v != "Max" {
+			t.Errorf("Got wrong value: %s != %s", v, "Max")
+		}
+	}
+
+	ow, err := NewObjectWrapper(s)
+	if err != nil {
+		t.Errorf("Error in newObjectWrapper: %s", err.Error())
+	} else {
+		w.SetValueAtPath("obj", ow)
+		testMax()
+		s.Name = "Jack"
+		testMax()
 	}
 }

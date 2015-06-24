@@ -105,6 +105,19 @@ func NewWrapper(i interface{}) (rd *Wrapper) {
 	return rd
 }
 
+// NewObjectWrapper takes a Go object that has JSON field struct annotations
+// and inserted into into a JSON wrapper. The serialization happens eagerly,
+// and the object is copied into the wrapper, so that subsequent updates to the
+// object will not be reflected in the Wrapper.
+func NewObjectWrapper(i interface{}) (*Wrapper, error) {
+	rd := NewDictionary()
+	err := (NewWrapper(i)).UnmarshalAgain(&rd.dat)
+	if err != nil {
+		rd = nil
+	}
+	return rd, err
+}
+
 func NewDictionary() *Wrapper {
 	m := make(map[string]interface{})
 	return NewWrapper(m)
