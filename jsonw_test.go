@@ -165,6 +165,30 @@ func TestDict(t *testing.T) {
 	}
 }
 
+func TestAtIndex(t *testing.T) {
+	w := makeTestObj()
+
+	x, err := w.AtKey("others").AtIndex(1).GetInt()
+	if err != nil {
+		t.Fatalf("Expected value, got err: %v", err)
+	}
+	if x != 101 {
+		t.Errorf("Expected 101, got: %v", x)
+	}
+
+	// Index too big.
+	x, err = w.AtKey("others").AtIndex(3).GetInt()
+	if err == nil {
+		t.Errorf("Expected err, got value: %v", x)
+	}
+
+	// Negative index.
+	x, err = w.AtKey("others").AtIndex(-1).GetInt()
+	if err == nil {
+		t.Errorf("Expected err, got value: %v", x)
+	}
+}
+
 func TestPath(t *testing.T) {
 	w := NewDictionary()
 	w.SetKey("dogs", NewArray(2))
@@ -256,12 +280,11 @@ func TestPath(t *testing.T) {
 
 type MyStruct struct {
 	Name string `json:"name"`
-	Yob int `json:"yob"`
+	Yob  int    `json:"yob"`
 }
 
-
 func TestObjectCopy(t *testing.T) {
-	s := MyStruct{ "Max", 1977 }
+	s := MyStruct{"Max", 1977}
 	w := makeTestObj()
 
 	testMax := func() {

@@ -389,6 +389,8 @@ func (rd *Wrapper) AtIndex(i int) *Wrapper {
 	ret, v := rd.asArray()
 	if v == nil {
 
+	} else if i < 0 {
+		ret.err = rd.NewError("index out of bounds %d < 0", i)
 	} else if len(v) <= i {
 		ret.err = rd.NewError("index out of bounds %d >= %d", i, len(v))
 	} else {
