@@ -305,3 +305,30 @@ func TestObjectCopy(t *testing.T) {
 		testMax()
 	}
 }
+
+func TestWrapperFromObject(t *testing.T) {
+	obj := MyStruct{
+		Name: "foo",
+		Yob:  9,
+	}
+	wrapper, err := WrapperFromObject(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	yob, err := wrapper.AtPath("yob").GetInt()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if yob != 9 {
+		t.Fatalf("expected 9, got %d", yob)
+	}
+
+	name, err := wrapper.AtPath("name").GetString()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "foo" {
+		t.Fatalf("expected \"foo\", got %q", name)
+	}
+}

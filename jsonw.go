@@ -53,6 +53,15 @@ func Unmarshal(raw []byte) (*Wrapper, error) {
 	return ret, err
 }
 
+func WrapperFromObject(obj interface{}) (*Wrapper, error) {
+	// Round tripping through []byte isn't very efficient. Is there a smarter way?
+	encoded, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	return Unmarshal(encoded)
+}
+
 func (e Error) Error() string { return e.msg }
 
 func (w *Wrapper) NewError(format string, a ...interface{}) *Error {
