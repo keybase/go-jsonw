@@ -1,9 +1,11 @@
 package jsonw
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -56,10 +58,11 @@ func Unmarshal(unsafeRaw []byte) (*Wrapper, error) {
 }
 
 func UnmarshalWithMaxDepth(unsafeRaw []byte, maxDepth int) (*Wrapper, error) {
-	raw, err := ensureMaxDepth(unsafeRaw, maxDepth)
+	err := EnsureMaxDepth(bufio.NewReader(bytes.NewReader(unsafeRaw)), maxDepth)
 	if err != nil {
 		return nil, err
 	}
+	raw := unsafeRaw
 
 	var iface interface{}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -715,13 +718,21 @@ const JSONRightCurlyBracket = byte('}')
 // See https://github.com/golang/go/blob/master/src/encoding/json/decode.go#L96.
 // Otherwise, behavior is undefined and an error may or may not be returned.
 // See the spec at https://json.org.
-func ensureMaxDepth(unsafeRaw []byte, maxDepth int) ([]byte, error) {
+func EnsureMaxDepth(unsafeRawReader *bufio.Reader, maxDepth int) error {
 	depth := 1
 	inString := false
 	lastByteWasEscape := false
-	for _, b := range unsafeRaw {
+	for {
+		b, err := unsafeRawReader.ReadByte()
+		switch err {
+		case io.EOF:
+			return nil
+		case nil:
+		default:
+			return err
+		}
 		if depth >= maxDepth {
-			return []byte{}, DepthError{fmt.Sprintf("Invalid JSON or exceeds max depth %d.", maxDepth)}
+			return DepthError{fmt.Sprintf("Invalid JSON or exceeds max depth %d.", maxDepth)}
 		}
 		if inString {
 			if lastByteWasEscape {
@@ -749,5 +760,12 @@ func ensureMaxDepth(unsafeRaw []byte, maxDepth int) ([]byte, error) {
 			}
 		}
 	}
-	return unsafeRaw, nil
+}
+
+func EnsureMaxDepthDefault(unsafeRawReader *bufio.Reader) error {
+	return EnsureMaxDepth(unsafeRawReader, defaultMaxDepth)
+}
+
+func EnsureMaxDepthBytesDefault(unsafeRaw []byte) error {
+	return EnsureMaxDepthDefault(bufio.NewReader(bytes.NewReader(unsafeRaw)))
 }
