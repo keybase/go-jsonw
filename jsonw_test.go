@@ -161,7 +161,7 @@ func TestDict(t *testing.T) {
 	}
 
 	if v, _ := w.AtKey("birds").AtKey("waterfowl").AtIndex(1).GetString(); v != "swan" {
-		t.Errorf("Wrong waterfowl in array: %s v swan (%s)", v)
+		t.Errorf("Wrong waterfowl in array: %s v swan (%s)", v, "swan")
 	}
 }
 
@@ -330,5 +330,73 @@ func TestWrapperFromObject(t *testing.T) {
 	}
 	if name != "foo" {
 		t.Fatalf("expected \"foo\", got %q", name)
+	}
+}
+
+type depthErrorType int
+
+const (
+	depthErrorNone depthErrorType = iota
+	depthErrorDepth
+	depthErrorParse
+)
+
+type depthTestVector struct {
+	jsonBlob          []byte
+	expectedErrorType depthErrorType
+	maxDepth          int
+}
+
+var depthTestVectors = []depthTestVector{
+	// Basic JSON parses
+	depthTestVector{[]byte("0"), depthErrorNone, 3},
+	depthTestVector{[]byte("\"fewijofe\""), depthErrorNone, 3},
+	depthTestVector{[]byte("-1.0"), depthErrorNone, 3},
+	depthTestVector{[]byte("-1.0e5"), depthErrorNone, 3},
+	depthTestVector{[]byte("{\"key\": \"value\"}"), depthErrorNone, 3},
+	depthTestVector{[]byte("hello"), depthErrorParse, 3},
+	depthTestVector{[]byte("[[], [], [], [[[[[[[]]]]]]]]"), depthErrorDepth, 3},
+	depthTestVector{[]byte("[\"]]]]]]]]]]]]]]]]]\", [], [], [[[[[[[]]]]]]]]"), depthErrorDepth, 3},
+	depthTestVector{[]byte("[\"]]]]]]]]\\\"]]]]]]]]]\", [], [], [[[[[[[]]]]]]]]"), depthErrorDepth, 3},
+	depthTestVector{[]byte("[\"hello\\tworld\"]"), depthErrorNone, 3},
+	depthTestVector{[]byte("[\"\\u1234\"]"), depthErrorNone, 3},
+
+	// Prefix of valid JSON past max depth returns a depth error
+	depthTestVector{[]byte("[[[[[[[[[[[[[["), depthErrorDepth, 3},
+	depthTestVector{[]byte("{{{{{{{{{{{{{{"), depthErrorDepth, 3},
+
+	// Some prefixes of invalid JSON past max depth returns a depth error
+	depthTestVector{[]byte("{[{"), depthErrorDepth, 3},
+
+	// Invalid unicode escape sequence returns syntax error
+	depthTestVector{[]byte("[\"\\u12\"4\"]"), depthErrorParse, 3},
+
+	// Valid unicode escape sequence with max depth-exceeding subpart returns max depth error
+	depthTestVector{[]byte("[\"\\u1234\", [[[[[[]]]]]]]"), depthErrorDepth, 3},
+
+	// Invalid unicode escape sequence with max depth-exceeding subpart may returns max parse error
+	depthTestVector{[]byte("[\"\\u\"]]]]]]\", [[[[[[]]]]]]]"), depthErrorParse, 3},
+}
+
+func TestMaxDepthJSON(t *testing.T) {
+	for _, depthTestVector := range depthTestVectors {
+		_, err := UnmarshalWithMaxDepth(depthTestVector.jsonBlob, depthTestVector.maxDepth)
+		expected := depthTestVector.expectedErrorType
+		switch expected {
+		case depthErrorNone:
+			if err != nil {
+				t.Fatalf("got error %v, expected error nil", err)
+			}
+		case depthErrorDepth:
+			if _, ok := err.(DepthError); !ok {
+				t.Fatalf("got error %v, expected DepthError", err)
+			}
+		case depthErrorParse:
+			if _, ok := err.(*json.SyntaxError); !ok {
+				t.Fatalf("got error %v, expected json.SyntaxError", err)
+			}
+		default:
+			t.Fatalf("Unexpected error type: %v", err)
+		}
 	}
 }
