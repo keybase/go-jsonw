@@ -701,12 +701,12 @@ func (w *Wrapper) AssertEqAtPath(path string, obj *Wrapper, errp *error) {
 	return
 }
 
-const JSONEscape = 0x5c
-const JSONDoubleQuotationMark = 0x22
-const JSONLeftSquareBracket = 0x5b
-const JSONLeftCurlyBracket = 0x7b
-const JSONRightSquareBracket = 0x5d
-const JSONRightCurlyBracket = 0x7d
+const JSONEscape = byte('\\')
+const JSONDoubleQuotationMark = byte('"')
+const JSONLeftSquareBracket = byte('[')
+const JSONLeftCurlyBracket = byte('{')
+const JSONRightSquareBracket = byte(']')
+const JSONRightCurlyBracket = byte('}')
 
 // ensureMaxDepth returns an error if raw represents a valid JSON string whose
 // deserialization's maximum depth exceeds maxDepth.
